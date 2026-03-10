@@ -12,7 +12,19 @@ app.get("/", (req, res) => {
 })
 
 app.get("/auth/discord", (req, res) => {
-  const url = `https://discord.com/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=identify%20email`
+  if (!CLIENT_ID || !CLIENT_SECRET || !REDIRECT_URI) {
+    return res.status(500).send(
+      `Configuração faltando.\nCLIENT_ID: ${CLIENT_ID ? "OK" : "MISSING"}\nCLIENT_SECRET: ${CLIENT_SECRET ? "OK" : "MISSING"}\nREDIRECT_URI: ${REDIRECT_URI ? "OK" : "MISSING"}`
+    )
+  }
+
+  const url =
+    `https://discord.com/oauth2/authorize` +
+    `?client_id=${encodeURIComponent(CLIENT_ID)}` +
+    `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
+    `&response_type=code` +
+    `&scope=identify%20email`
+
   res.redirect(url)
 })
 
@@ -51,10 +63,11 @@ app.get("/auth/discord/callback", async (req, res) => {
 
     const user = userResponse.data
 
-    res.send(`Verificação concluída com sucesso: ${user.username}#${user.discriminator || "0"}`)
+    return res.send(`Verificação concluída com sucesso: ${user.username} (${user.id})`)
   } catch (err) {
-    console.log(err.response?.data || err.message)
-    res.status(500).send("Erro na verificação.")
+    const details = err.response?.data || err.message || "Erro desconhecido"
+    console.log("ERRO OAUTH:", details)
+    return res.status(500).send(`Erro na verificação: ${JSON.stringify(details)}`)
   }
 })
 
